@@ -1,130 +1,140 @@
 # dsh-terminal-context
 
-在 DSH 内置的右侧栏终端里划选一段输出，再点进当前对话的输入框。「添加到上下文」会出现在输入框上方，靠聊天区右侧，位置固定。点这个按钮，选中的输出会变成输入框里的一个 `@file` 引用。这种引用和手敲 `@文件` 得到的是同一种：可以点开预览，发送时展开成完整内容。
+一键将 DeepSeek Harness (DSH) 内置侧栏终端的选中文本，转为对话输入框中的原生 `@file` 引用。
 
-按钮不跟选区走。在这个终端里，高亮层的屏幕坐标不可靠。按选区摆放时，按钮会被推到终端右缘、屏幕外，或压在输入框上。固定位置避开这些情况。
+对齐 Cursor 的 `@Terminals` 与 Trae 的「添加到对话」体验：免去手动复制粘贴数百行日志的繁琐操作；引用在输入框中以结构化 chip 显示，可点击预览，发送时自动展开为全文。
 
-[English](README.md) | 中文
+[English](README.md) | [简体中文](README.zh.md)
 
-## 怎么用
+---
 
-1. 在侧栏终端里划选输出。
-2. 点进输入框。发消息本来就要点这里。划选松开时，浏览器选区经常已经折叠，按钮多半要等这次点击带来的 `selectionchange` 才出现。
-3. 点输入框上方的「添加到上下文」。
+## 使用方法
 
-终端里的灰色高亮还在时，也可以按 **`Ctrl+L`**（macOS 为 `Cmd+L`）。命令 id 是 `dsh-terminal-context.add`，可以在**「设置 → 快捷键」**里改键。
+整个交互配合常规提问流，无需寻找浮动按钮：
 
-没有可用选区时，这个快捷键不认领 `Ctrl+L`，终端原有的清屏仍然有效。灰色高亮消失之后，快捷键也不会把几分钟前缓存的旧输出送进对话。高亮还在时，插件会接过 `Ctrl+L`，终端不再用这个键清屏。清屏请输入 `clear`。
+1. **选中文本**：在右侧栏内置终端中划选需要引用的输出或报错日志。
+2. **点击输入框**：点击当前会话的输入框（准备输入问题）。此时「添加到上下文」按钮会固定浮现在输入框上沿右侧。
+3. **加入上下文**：
+   - **方式 A（点击）**：单击「添加到上下文」按钮，终端输出即刻以文件引用形式插入输入框。
+   - **方式 B（快捷键）**：在终端文本保持高亮时直接按下 **`Ctrl+L`**（macOS 为 **`Cmd+L`**）。
 
-取消选中、xterm 的灰色高亮消失之后，按钮立刻消失。
+> **按钮位置说明**：本插件放弃了「跟随选区浮动」的设计。实测表明，侧栏 xterm 的高亮叠加层在多行折叠场景下无法提供跨环境可靠的视口坐标，浮动按钮容易跳出视口或遮挡文字。固定停靠在输入框上方能够确保位置稳定、不遮挡交互区域。
 
-## 为什么写成文件
+### 快捷键行为与取消选中
 
-终端输出常常有几百行。把原文直接贴进输入框，提问会被大段输出盖住，每次重发都要再消耗一次 token，而且看不出这段文字来自终端还是手写。
+- **命令标识**：`dsh-terminal-context.add`，可在「设置 → 快捷键」中重新绑定。
+- **让渡按键**：当终端没有可用选区时，插件不拦截 `Ctrl+L`，终端原生的清屏功能照常生效；只有在选区有效时才会接管该按键。需要清屏时请输入 `clear`。
+- **状态同步**：取消终端选区（灰色高亮消失）后，输入框上方的按钮会立即隐藏，快捷键也不会发送之前缓存的输出。
 
-插件把选中文本写成工作区里的文件，再插入 DSH 自己的文件引用：
+---
 
-1. 选中文本写入 `<工作区>/.dsh/term-captures/terminal-<时间戳>.txt`，文件开头有一段来源说明。
-2. DSH 把这个文件插成引用。
-3. 发送时，引用写成 `@.dsh/term-captures/terminal-….txt`。agent 读取这个文件即可。
+## 为什么沉淀为文件，而不是直接粘贴文本？
 
-输入框里只留引用。引用可以点开预览。插件自动只保留最近 20 份捕获。
+终端输出通常包含数十至数百行日志。直接将大段文本灌入输入框存在明显弊端：
 
-写入前，插件会去掉每行行尾的空白，以及整段文本开头和结尾的空行。xterm 会把每一行用空格补到终端宽度，原样保存会带上几百个看不见的空格。屏幕上能看见的文字保持不变。
+- **稀释提问主体**：长日志会淹没你的实际问题，破坏会话的可读性。
+- **重复消耗 Token**：多轮重试或追问时，内联的日志会被重复序列化提交，大幅增加上下文消耗。
+- **来源断代**：大模型无法区分这段文本是终端产生的客观输出还是用户的手写输入。
 
-## 安装
+本插件采用 **「本地临时捕获 + 原生引用注入」** 方案：
 
-DSH 没有官方插件商店。npm 包、git 仓库和 tarball 都可以用应用自带的插件管理器安装。
+1. 选中文本自动写入 `<工作区>/.dsh/term-captures/terminal-<时间戳>.txt`，文件头部带有来源标识。
+2. 通过 DSH 原生机制在输入框插入该文件引用。
+3. 发送消息时，引用被序列化为 `@.dsh/term-captures/terminal-….txt`，Agent 可按需调取全文。
 
-**从 GitHub 安装。** 仓库里已经放了构建好的客户端 bundle，不需要构建，也不会要求 `allowBuilds` 授权：
+> **文本规范化**：落盘时，插件会自动剥除每行行尾的空白符以及整段文本首尾的空行。xterm 默认会用空格将行填满至终端视口宽度，这一清理可移除数百个无意义的填充空格，同时严格保留原本可见的所有字符。
+
+---
+
+## 安装方式
+
+DSH 目前未设立中心化插件市场，你可以通过 DSH 内置的插件管理能力进行安装。本仓库已内置预构建的客户端产物，无需本地构建，亦不会触发 `allowBuilds` 授权。
+
+### 方式 1：通过 GitHub 安装（推荐）
+
+在终端中执行：
 
 ```sh
 dsh plugin --profile web add github:ZHOU-ZHIZHEN/dsh-terminal-context
 ```
 
-**从 npm 安装。** 包发布到 npm 之后再用。现在仓库只在 GitHub 上，下面这条命令还不能用：
+### 方式 2：通过本地 Tarball 安装
+
+在仓库根目录下打包并安装：
 
 ```sh
-dsh plugin --profile web add dsh-terminal-context
-```
-
-**从 tarball 安装。** 在本目录执行 `pnpm pack`，然后：
-
-```sh
+pnpm pack
 dsh plugin --profile web add ./dsh-terminal-context-0.1.0.tgz
 ```
 
-**安装到桌面版。** `desktop` profile 由 Electron 应用独占。CLI 会拒绝，并提示 `profile "desktop" is managed exclusively by the Electron application`。请用应用自己的入口：左侧栏「插件」→ 添加插件，填入本目录的绝对路径，然后重启。
+### 方式 3：桌面客户端手动加载
 
-「设置 → 内置插件」是只读的库存列表。安装入口在侧栏。
+由于桌面版的 `desktop` profile 由 Electron 独占管理（CLI 操作会返回 `profile "desktop" is managed exclusively by the Electron application`），请使用应用内置界面：
 
-## 引用是怎么插进去的
+1. 打开 DSH 桌面版，点击左侧栏的 **「插件」** 图标。
+2. 点击 **「添加插件」**，输入本插件在本地的绝对路径。
+3. 重启 DeepSeek Harness 即可生效。
 
-输入框里插入文件引用，正规入口只有会话作用域事件 `slash/input-insert-reference`。事件里的 `span` 必须带上当前的 `draftRev`，宿主用修订号做比较并交换。`reference.source` 必须是内核认得的源名。这两项有一项不对，消息就发不出去。
+---
 
-`span` 来自 `inputActions.captureInsertion()`。这是插槽组件的标准 props。直接 `apply(ctx)` 不一定能走到 `conversation.input.for(scope)`。插件按下面的顺序试三条路：
+## 工作原理
 
-1. **插槽桥。** 向已经声明的列表插槽 `conversation.input.dock` 注册一个无界面组件。内核自带的 `todo` 和 `queue` 也注册在这个插槽。插槽组件一定能拿到 `inputActions`。插件把当前会话的 `captureInsertion` 和 `insertText` 记下来。
-2. **服务直连。** 调用 `ctx.get('conversation').input.for(scope)`。
-3. **纯文本。** 把 `@路径` 当作普通文本送出。DSH 仍会把它显示成文件夹引用。
+### 1. 结构化引用插入（三层降级）
 
-插件会检查 `bail()` 的返回值。宿主的 `insertReference` 会核对修订号和输入阶段。返回 `false` 表示这次插入被拒绝，插件改走下一条路。
+向输入框注入原生 chip 必须通过会话作用域事件 `slash/input-insert-reference`。该事件要求 `span` 必须携带当前的草稿修订号 `draftRev`（由宿主做 CAS 校验），且 `reference.source` 必须为核心认可的源名。
 
-任何一条路失败，插件只打一条 `[dsh-terminal-context]` 警告。界面继续可用。
+为了稳定取得光标/插入点上下文，插件按序尝试以下三层路径：
 
-### 选区文本怎么读
+1. **插槽桥（优先）**：向已声明的列表插槽 `conversation.input.dock` 注册无 UI 桥接组件（DSH 官方的 `todo` 与 `queue` 模块同在其中）。该组件必定能收到带有当前会话 `captureInsertion` 与 `insertText` 的标准 `inputActions`。
+2. **服务直连**：调用 `ctx.get('conversation').input.for(scope)` 解析当前活动输入会话。
+3. **纯文本提及（兜底）**：若上述两层结构化注入因宿主 CAS 拒绝返回 `false`，降级为直接向输入框追加 `@相对路径 ` 纯文本，DSH 仍会对其做高亮渲染。
 
-| 路径 | 何时使用 | 精度 |
+### 2. 选区读取与高亮层还原
+
+| 提取路径 | 触发时机 | 精度特性 |
 |---|---|---|
-| xterm 原生选区 | 浏览器选区还能读出文字时 | 与选中范围一致 |
-| 高亮层还原 | 浏览器选区已经折叠时 | 按整行取，多取不丢 |
+| **xterm DOM 选区** | 浏览器选区尚未折叠、文本可直接读取时 | 精确匹配选中字符 |
+| **高亮叠加层几何还原** | 鼠标松开后浏览器选区已自动折叠时 | 按行截取，宁多勿少 |
 
-鼠标松开时，浏览器选区经常已经是 `collapsed: true`，矩形数量为 0。这时 `window.getSelection().toString()` 和合成的 `copy` 事件都是空的。xterm 的灰色高亮还在，那是 xterm 自己画的一层。插件读取 `.xterm-selection` 里绝对定位的高亮矩形，判断覆盖了哪些行，再取这些行的整行文本。
+实测中，鼠标在终端松开的瞬间，浏览器的原生选区经常已退化为 `collapsed: true`（矩形尺寸为 0），导致 `window.getSelection()` 与合成的剪贴板探针读数均为空。但此时 xterm 自身绘制在 `.xterm-selection` 的独立绝对定位高亮层依然保留。
 
-边界上的行可能多带一两行。早期版本按像素宽度把末行裁到字符列，实测会切掉要保留的文本，例如把 `ls -la` 的末行切成半个词，并丢掉末尾若干行。多出来的行可以删。少掉的行要重新选。
+插件此时会解析该层的高亮像素矩形，计算出其覆盖的终端行号范围，并提取对应 `.xterm-rows` 的完整行内容。这种策略确保不会截断关键输出（例如因列换算误差误切 `ls -la` 结尾文字），用户若觉得行数偏多可在发送前微调，避免了选区截断导致的重新划选成本。
 
-## 文件
+---
 
-| 文件 | 作用 |
+## 项目结构
+
+| 文件 | 说明 |
 |---|---|
-| `lib/client.js` | 浏览器半，构建产物格式（`window.__ModuleLoader__.load`）：选区监听、输入框上方的按钮、快捷键、插槽桥、引用 |
-| `lib/index.js` | 宿主半（Node）：HTTP 路由（`capture` / `sweep` / `diag`）和工作区 realpath 限制 |
-| `cordis.patch.yml` | bundle 层，把本插件的行插进 profile |
-| `test-host.mjs` | 宿主半离线验证（假 ctx、假请求和响应） |
-| `test-client.mjs` | 客户端半离线验证（假模块表、假 DOM） |
+| `lib/client.js` | 浏览器端产物（遵循 `window.__ModuleLoader__.load` 规范）：负责选区监听、停靠按钮、快捷键绑定与输入框交互 |
+| `lib/index.js` | 宿主端（Node.js）：提供 `/capture` 落盘、`/sweep` 轮转清理以及 `/diag` 诊断等 HTTP 路由 |
+| `cordis.patch.yml` | Bundle 声明文件，用于在加载配置时注册插件运行时 |
+| `test-host.mjs` | 宿主端离线单测（模拟 WebServer、Sessions 及各类边界路径） |
+| `test-client.mjs` | 浏览器端离线单测（模拟 DOM、Lexical 输入框及 xterm 交互） |
 
-## 验证
+---
 
-在本目录执行：
+## 本地验证
+
+无需启动真实 DSH 环境，本仓库提供完整的离线验证脚本：
 
 ```sh
-node test-host.mjs lib/index.js     # 路由、落盘、错误分支、保留清理
-node test-client.mjs lib/client.js  # bundle 契约、启动、完整点击链路
+node test-host.mjs lib/index.js     # 验证路由调度、落盘安全、错误防护及 20 份轮转
+node test-client.mjs lib/client.js  # 验证 Bundle 契约、事件流、兜底链路与快捷键
 ```
 
-## 已知边界
+---
 
-- **按钮固定在输入框上方。** 高亮矩形、行坐标和鼠标位置都试过，在这个终端里会把按钮推到终端右缘、屏幕外，或压在输入框上。划选完成的那一拍经常读不到文本，按钮多半在点进输入框时才出现。
-- **三条 HTTP 路由不校验调用方。** `/capture`、`/sweep`、`/diag` 注册在 DSH 自带的 `webServer` 上。插件不检查请求来自谁。能连上这个端口的程序，可以向某个会话的工作区写入捕获文件（agent 随后可能读到它）、触发一次保留清理，或追加诊断记录。在本机用 Node 脚本发一个不带凭据的 `fetch`，处理函数会返回 `405`，而不是 `401`。
+## 已知限制与安全说明
 
-  这个端口能否被应用自己的页面之外访问，由 DSH 决定。这台机器上没有单独的 `webServer` 实现可以核对。请把 DSH 的 Web 端口绑在回环地址上，不要暴露到局域网或公网。在插件里另做一套 token 并不能补上这道检查：能打到这条路由的页面，也能读到同一个页面里的 token。
+- **HTTP 路由鉴权范围**：插件的 `/capture`、`/sweep` 与 `/diag` 路由挂载在 DSH 进程的 `webServer` 上，其内部不重复对请求发起方做独立身份校验。请确保 DSH 的 Web 端口仅监听在本地回环地址（`127.0.0.1`），严禁将该端口直接暴露到公网或未受信任的局域网中。
+- **仅限右侧栏内置终端**：识别选择器限定为 `[data-sidebar-terminal]`（支持 DSH 原生终端以及 v0.19.0+ 的 `dsh-better-sidebar` 终端）。插件不依赖第三方终端组件的私有 API。
+- **非全自动转录**：DSH 在架构设计上明确将终端执行过程排斥在会话 Transcript 之外（参考 `dsh-api-terminal-controller` 约定）。因此插件不会静默监听所有命令，仅在用户显式选定并触发后生成捕获。
+- **捕获轮转机制**：捕获文件保存在 `<工作区>/.dsh/term-captures/`，文件名前缀为带时间戳的 `terminal-<stamp>.txt`。插件每次写入后会自动扫描该目录，仅保留时间最新的 20 份文件，超额文件将自动销毁。单份捕获体积极小（0.5~6 KB 左右），若工作区受 Git 管理，建议将 `.dsh/` 加入根目录 `.gitignore`。
+- **诊断日志存储**：由于打包后的 Electron 桌面版无法直接唤起 DevTools，客户端的关键事件与错误会通过宿主写入 `$DSH_HOME/dsh-terminal-context-diag.json`（保留最近 200 条，单次最大 4MB），用于无控制台环境下的排错。
 
-- **诊断日志按整份文件重写。** `/diag` 会重写 `$DSH_HOME/dsh-terminal-context-diag.json`，只留最近 200 条。单次请求体上限是 4 MB。并发上报可能丢掉记录。这份文件用来排查问题，不作为审计日志。
-- **只认内置侧栏终端**（`[data-sidebar-terminal]`）。`dsh-better-sidebar` 从 v0.19.0 起把终端交还给 DSH 原生的 `ui-sidebar-terminal`，所以那个终端页也在范围内。本插件不依赖 `dsh-better-sidebar`，只读 DOM 标记。该插件在 v0.21.1 删掉的终端 API，因此不影响本插件。
-- **输出不会自动进入对话。** 使用时仍要划选，再点按钮或按快捷键。DSH 的侧栏终端不把输出写入 agent 的对话记录（`dsh-api-terminal-controller`：*Terminal output stays outside the Agent transcript*）。
-- 插件依赖内部事件 `slash/input-insert-reference`。这个事件没有随包发布类型声明。事件形状变了之后，按钮点了没有反应，诊断日志里会出现 `[dsh-terminal-context]` 警告。
-- **捕获文件在** `<工作区>/.dsh/term-captures/`。插件按文件名里的时间戳删除最旧的，只留最近 20 份。这个点开头的目录在编辑器文件树、`dir` 和 `ls` 里默认不显示。实测每份约 0.4–6 KB，20 份一共几十 KB。手动查看或清理：`Get-ChildItem -Force .dsh\term-captures`。工作区若是 git 仓库，把 `.dsh/` 写进忽略列表即可。
-
-## 诊断
-
-打包后的桌面客户端打不开 DevTools。源码里有 F12 的绑定，但那段带有「可移除」注释，打包版里不生效。客户端把状态发给宿主的 `/diag` 路由，由宿主追加写入：
-
-```
-$DSH_HOME/dsh-terminal-context-diag.json
-```
-
-每条记录有一句 `verdict`，例如 `ok via=highlight chars=542`，或 `no-selection (miss=empty-text, live=0, probe=0, rects=3)`，并附上当时的阶段快照。`client-loaded` 这类启动事件每种只上报一次，也不占用配额，所以重复启动不会把后面真正要看的记录挤掉。
+---
 
 ## 许可证
 
-MIT
+本项目基于 [MIT License](LICENSE) 开源。
