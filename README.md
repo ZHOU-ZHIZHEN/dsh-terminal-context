@@ -51,15 +51,32 @@ This plugin implements a **"local capture file + native reference injection"** p
 
 DSH has no centralized plugin marketplace. Plugins are installed using DSH's built-in plugin manager. This repository ships pre-bundled client code, requiring no local build steps or `allowBuilds` permissions.
 
-### Option 1: Via GitHub (Recommended)
+### Option 1: Desktop GUI Install (Recommended)
 
-Run inside your terminal:
+If you use the DeepSeek Harness desktop application, install directly from the graphical interface without using a terminal:
+
+1. Open DeepSeek Harness Desktop and click the **Plugins** icon on the left sidebar.
+2. Click **Add Plugin** in the top right.
+3. In the input box, enter the GitHub repository identifier directly:
+   ```text
+   github:ZHOU-ZHIZHEN/dsh-terminal-context
+   ```
+4. Click install and wait for DSH to finish fetching the package.
+5. **Restart DeepSeek Harness** to apply the plugin.
+
+> **Local Development Tip**: If you are developing locally, you can also enter the **absolute local path** of this directory into the "Add Plugin" field to load it as a linked local plugin.
+
+### Option 2: Web Profile / CLI Install
+
+If you run DSH Web or manage profiles via CLI, run in your terminal:
 
 ```sh
 dsh plugin --profile web add github:ZHOU-ZHIZHEN/dsh-terminal-context
 ```
 
-### Option 2: Via Local Tarball
+> **Note**: The desktop profile is managed exclusively by the Electron application. Running the CLI command against `desktop` will return `profile "desktop" is managed exclusively by the Electron application`. For the desktop app, always use **Option 1** via the GUI.
+
+### Option 3: Via Local Tarball
 
 Pack the repository locally and install the tarball:
 
@@ -67,14 +84,6 @@ Pack the repository locally and install the tarball:
 pnpm pack
 dsh plugin --profile web add ./dsh-terminal-context-0.1.0.tgz
 ```
-
-### Option 3: Desktop App Manual Install
-
-Because the desktop profile is managed exclusively by the Electron app (CLI attempts return `profile "desktop" is managed exclusively by the Electron application`), use the graphical interface:
-
-1. Open DeepSeek Harness Desktop and click the **Plugins** icon on the left sidebar.
-2. Click **Add Plugin** and enter the absolute path to this local repository directory.
-3. Restart DeepSeek Harness.
 
 ---
 

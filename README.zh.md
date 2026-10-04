@@ -50,15 +50,32 @@
 
 DSH 目前未设立中心化插件市场，你可以通过 DSH 内置的插件管理能力进行安装。本仓库已内置预构建的客户端产物，无需本地构建，亦不会触发 `allowBuilds` 授权。
 
-### 方式 1：通过 GitHub 安装（推荐）
+### 方式 1：DSH 桌面版图形界面安装（最推荐）
 
-在终端中执行：
+如果你使用的是 DeepSeek Harness 桌面客户端，直接通过应用界面安装即可，无需打开命令行：
+
+1. 打开 DSH 桌面版，点击左侧栏的 **「插件」** 图标。
+2. 点击右上角的 **「添加插件」** 按钮。
+3. 在安装来源输入框中直接填入 GitHub 仓库标识：
+   ```text
+   github:ZHOU-ZHIZHEN/dsh-terminal-context
+   ```
+4. 点击安装，等待 DSH 自动拉取完成。
+5. **完全重启 DeepSeek Harness** 即可生效。
+
+> **本地开发提示**：如果是本地调试插件代码，也可以在「添加插件」输入框中直接填入本仓库在本地的**绝对路径**进行链接调试。
+
+### 方式 2：DSH Web 版 / 命令行安装
+
+如果你使用的是 DSH Web 版或通过 CLI 管理 profile，在终端中执行：
 
 ```sh
 dsh plugin --profile web add github:ZHOU-ZHIZHEN/dsh-terminal-context
 ```
 
-### 方式 2：通过本地 Tarball 安装
+> **注意**：桌面版的 `desktop` profile 由 Electron 客户端独占管理，通过命令行操作会提示 `profile "desktop" is managed exclusively by the Electron application`。桌面版请统一使用上述**方式 1**在图形界面中添加。
+
+### 方式 3：通过本地 Tarball 安装
 
 在仓库根目录下打包并安装：
 
@@ -66,14 +83,6 @@ dsh plugin --profile web add github:ZHOU-ZHIZHEN/dsh-terminal-context
 pnpm pack
 dsh plugin --profile web add ./dsh-terminal-context-0.1.0.tgz
 ```
-
-### 方式 3：桌面客户端手动加载
-
-由于桌面版的 `desktop` profile 由 Electron 独占管理（CLI 操作会返回 `profile "desktop" is managed exclusively by the Electron application`），请使用应用内置界面：
-
-1. 打开 DSH 桌面版，点击左侧栏的 **「插件」** 图标。
-2. 点击 **「添加插件」**，输入本插件在本地的绝对路径。
-3. 重启 DeepSeek Harness 即可生效。
 
 ---
 
