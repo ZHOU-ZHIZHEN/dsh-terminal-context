@@ -1,0 +1,59 @@
+{
+  "name": "dsh-terminal-context",
+  "version": "0.1.0",
+  "description": "Turns a selection in DSH's built-in sidebar terminal into an @file reference in the composer, through a button above the composer and a keyboard shortcut.",
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "terminal",
+    "context",
+    "composer",
+    "reference"
+  ],
+  "type": "module",
+  "main": "./lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/",
+    "cordis.patch.yml",
+    "README.md",
+    "README.zh.md",
+    "LICENSE"
+  ],
+  "dsh": {
+    "manifestVersion": 1,
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ]
+    }
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node test-host.mjs lib/index.js && node test-client.mjs lib/client.js",
+    "test:host": "node test-host.mjs lib/index.js",
+    "test:client": "node test-client.mjs lib/client.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ZHOU-ZHIZHEN/dsh-terminal-context.git"
+  },
+  "homepage": "https://github.com/ZHOU-ZHIZHEN/dsh-terminal-context#readme",
+  "bugs": {
+    "url": "https://github.com/ZHOU-ZHIZHEN/dsh-terminal-context/issues"
+  },
+  "author": "Zhizhen Zhou <mc55102@um.edu.mo>",
+  "license": "MIT"
+}

@@ -1,0 +1,12 @@
+# dsh-terminal-context bundle layer: inserts the plugin row.
+#
+# 两半各有分工，不是「只有客户端一半」：
+#   - lib/client.js（浏览器半）：选区读取、浮动按钮、快捷键、引用 chip 插入
+#   - lib/index.js（宿主半）：三条 HTTP 路由 —— capture（落盘）/ sweep（保留上限清理）
+#     / diag（客户端诊断回传，供没有 DevTools 的桌面端排查）
+#
+# bundle 需要一个可加载的 Node 入口，所以这一行是必须的；插件行为本身
+# 由上面两个文件承担。
+- insert:
+    - id: dsh-terminal-context
+      name: 'dsh-terminal-context'
